@@ -36,7 +36,7 @@ for i in range ( 0, len ( full_data ), MAX_PAYLOAD_LEN ):
     packet_bits = np.unpackbits ( np.frombuffer ( packet, dtype = np.uint8 ) )
     symbols = 2 * packet_bits - 1
     tx_symbols = np.repeat ( symbols, SPS ).astype ( np.complex64 )
-    tx_symbols *= 0.9
+    tx_symbols *= 0.2  # minimalna moc wyjściowa
 
     tx_signal_parts.append ( tx_symbols )
     tx_signal_parts.append ( silence )
@@ -44,13 +44,12 @@ for i in range ( 0, len ( full_data ), MAX_PAYLOAD_LEN ):
 tx_signal = np.concatenate ( tx_signal_parts )
 
 # Inicjalizacja Pluto SDR
-#sdr = adi.Pluto ( uri = "usb:" )
 sdr = adi.Pluto ( uri = "ip:192.168.2.1" )
 sdr.sample_rate = F_S
 sdr.tx_rf_bandwidth = int ( F_S )
 sdr.tx_lo = F_C
-#sdr.tx_cyclic_buffer = False
 sdr.tx_cyclic_buffer = True
+#sdr.tx_cyclic_buffer = False
 
 sdr.tx ( tx_signal )
 
