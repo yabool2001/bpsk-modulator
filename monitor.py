@@ -8,6 +8,10 @@ import sys
 sys.path.append ( "modules" )
 from rrc import rrc_filter
 
+# App settings
+#verbose = True
+verbose = False
+
 # Parametry systemu
 F_C = 2_900_000_000
 F_S = 521_100
@@ -22,12 +26,11 @@ RRC_SPAN = 11
 # Inicjalizacja Pluto SDR
 sdr = adi.Pluto ( uri = "usb:" )
 sdr.rx_lo = F_C
-sdr.sample_rate = F_S
+sdr.sample_rate = int ( F_S )
 sdr.rx_rf_bandwidth = BW
 sdr.rx_buffer_size = NUM_SAMPLES
 sdr.gain_control_mode_chan0 = "manual"
 sdr.rx_hardwaregain_chan0 = -3.0
-sdr._rx_data_type = np.complex64
 print ( f"Typ danych RX: {sdr._rx_data_type}" )
 print ( f"{sdr.rx_hardwaregain_chan0=}")
 print ( f"{sdr=}" )
@@ -70,18 +73,15 @@ plt.tight_layout ()
 
 try:
     while True:
-        new_samples = np.array ( sdr.rx () )
-        # new_samples = lfilter ( rrc_taps , 1.0 , new_samples )
-        print ( "=== DIAGNOSTYKA DANYCH RX ===" )
-        print ( f"Typ danych RX:        {type ( new_samples )}" )
-        print ( f"Typ elementów tablicy:{new_samples.dtype}" )
-        print ( f"Min:                  {np.min ( new_samples )}" )
-        print ( f"Max:                  {np.max ( new_samples )}" )
-        print ( f"Średnia amplituda:    {np.mean ( np.abs ( new_samples ) ):.4f}" )
-        print ( f"Maks. amplituda:      {np.max ( np.abs ( new_samples ) ):.4f}" )
-        print ( f"Real max:             {np.max ( np.real ( new_samples ) )}" )
-        print ( f"Imag max:             {np.max ( np.imag ( new_samples ) )}" )
-        print ( "===============================" )
+        new_samples = sdr.rx()
+        #new_samples = np.array ( sdr.rx () )
+        new_samples = lfilter ( rrc_taps , 1.0 , new_samples )
+        
+        if verbose :
+            print ( f"Typ danych: {type ( new_samples )}, dtype: {new_samples.dtype}" )
+            print ( f"{new_samples=}" )
+            print ( f"Max amp: {np.max ( np.abs ( new_samples ) ):.3f}" )
+
         n = len ( new_samples )
         max_amp = np.max ( np.abs ( new_samples ) )
 
@@ -99,7 +99,6 @@ try:
             line_i.set_ydata ( np.real ( new_samples ) )
             line_q.set_ydata ( np.imag ( new_samples ) )
             ax_time.set_xlim ( 0 , NUM_SAMPLES )
-
 
         iq_plot = np.roll ( iq_buffer , -write_index )
         sc_const.set_offsets (
