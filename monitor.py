@@ -31,9 +31,11 @@ sdr.rx_rf_bandwidth = BW
 sdr.rx_buffer_size = NUM_SAMPLES
 sdr.gain_control_mode_chan0 = "manual"
 sdr.rx_hardwaregain_chan0 = -3.0
-print ( f"Typ danych RX: {sdr._rx_data_type}" )
-print ( f"{sdr.rx_hardwaregain_chan0=}")
-print ( f"{sdr=}" )
+sdr.rx_output_type = "SI"
+help ( adi.Pluto.rx_output_type )
+help ( adi.Pluto.gain_control_mode_chan0 )
+help ( adi.Pluto.tx_lo )
+help ( adi.Pluto.tx  )
 
 # Bufor konstelacji (cykliczny)
 iq_buffer = np.zeros ( NUM_POINTS , dtype = np.complex64 )
@@ -76,16 +78,16 @@ try:
         new_samples = sdr.rx()
         #new_samples = np.array ( sdr.rx () )
         new_samples = lfilter ( rrc_taps , 1.0 , new_samples )
-        
+        print (f"{new_samples=}")
         if verbose :
             print ( f"Typ danych: {type ( new_samples )}, dtype: {new_samples.dtype}" )
             print ( f"{new_samples=}" )
             print ( f"Max amp: {np.max ( np.abs ( new_samples ) ):.3f}" )
 
         n = len ( new_samples )
-        max_amp = np.max ( np.abs ( new_samples ) )
+        max_amp = np.max(np.abs(new_samples))
 
-        if max_amp > 0.01:
+        if max_amp > 0.02:
             print ( f"Amp: {max_amp:.3f} , dodano {n} próbek" )
 
             if write_index + n <= NUM_POINTS:
