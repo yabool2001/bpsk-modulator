@@ -16,16 +16,19 @@ sys.path.append ( "modules" )
 verbose = True
 #verbose = False
 
-# Parametry systemu
+# Parametry SDR
+RX_GAIN = -3.0
+
+# Parametry RF 
 F_C = 2_900_000_000
 F_S = 521_100
 BW  = 20_000_000
 NUM_SAMPLES = 4096
 NUM_POINTS = 16384
-SPS = 4
+SPS = 4 
 # Parametry filtru RRC
-RRC_BETA = 0.35
-RRC_SPS = 4
+RRC_BETA = 0.35 # Excess_bw
+RRC_SPS = SPS   # Samples per symbol
 RRC_SPAN = 11
 
 # Inicjalizacja Pluto SDR
@@ -35,7 +38,7 @@ sdr.sample_rate = int ( F_S )
 sdr.rx_rf_bandwidth = BW
 sdr.rx_buffer_size = NUM_SAMPLES
 sdr.gain_control_mode_chan0 = "manual"
-sdr.rx_hardwaregain_chan0 = -3.0
+sdr.rx_hardwaregain_chan0 = RX_GAIN
 sdr.rx_output_type = "SI"
 if verbose : help ( adi.Pluto.rx_output_type ) ; help ( adi.Pluto.gain_control_mode_chan0 ) ; help ( adi.Pluto.tx_lo ) ; help ( adi.Pluto.tx  )
 
@@ -57,7 +60,7 @@ t0 = time.time ()
 try :
     while True:
         if keyboard.is_pressed ('esc') :
-            print ( "Naciśnięto Esc – kończę zbieranie." )
+            print ( "Naciśnięto Esc. Kończę zbieranie." )
             break
 
         new_samples = sdr.rx ()
