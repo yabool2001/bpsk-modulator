@@ -17,13 +17,13 @@ verbose = True
 #verbose = False
 
 # Parametry SDR
-RX_GAIN = -3.0
+RX_GAIN = 0.1
 
 # Parametry RF 
 F_C = 2_900_000_000
 F_S = 521_100
-BW  = 20_000_000
-NUM_SAMPLES = 4096
+BW  = 1_000_000
+NUM_SAMPLES = 32768
 NUM_POINTS = 16384
 SPS = 4 
 # Parametry filtru RRC
@@ -33,17 +33,17 @@ RRC_SPAN = 11
 
 # Inicjalizacja Pluto SDR
 sdr = adi.Pluto ( uri = "usb:" )
-sdr.rx_lo = F_C
+sdr.rx_lo = int ( F_C )
 sdr.sample_rate = int ( F_S )
-sdr.rx_rf_bandwidth = BW
-sdr.rx_buffer_size = NUM_SAMPLES
+sdr.rx_rf_bandwidth = int ( BW )
+sdr.rx_buffer_size = int ( NUM_SAMPLES )
 sdr.gain_control_mode_chan0 = "manual"
-sdr.rx_hardwaregain_chan0 = RX_GAIN
+sdr.rx_hardwaregain_chan0 = float ( RX_GAIN )
 sdr.rx_output_type = "SI"
 if verbose : help ( adi.Pluto.rx_output_type ) ; help ( adi.Pluto.gain_control_mode_chan0 ) ; help ( adi.Pluto.tx_lo ) ; help ( adi.Pluto.tx  )
 
 # Inicjalizacja pliku CSV
-filename = "complex.csv"
+filename = "complex_rx.csv"
 csv_file = open ( filename , mode = "w" , newline = '' )
 csv_writer = csv.writer ( csv_file )
 csv_writer.writerow ( [ "timestamp" , "real" , "imag" ] )
@@ -66,10 +66,11 @@ try :
         new_samples = sdr.rx ()
         filtered = lfilter ( rrc_taps , 1.0 , new_samples )
         ts = time.time () - t0
-        for sample in new_samples:
+        for sample in filtered :
             csv_writer.writerow ( [ ts , sample.real , sample.imag ] )
         csv_file.flush () 
-        if verbose : print ( f"Typ danych: {type ( new_samples )}, dtype: {new_samples.dtype}" ) ; print ( f"{new_samples=}" )
+        #if verbose : print ( f"Typ danych: {type ( new_samples )}, dtype: {new_samples.dtype}" ) ; print ( f"{new_samples=}" )
+        if verbose : print ( f"Typ danych: {type ( filtered )}, dtype: {filtered.dtype}" ) ; print ( f"{filtered=}" )
 
 except KeyboardInterrupt :
     print ( "Zakończono ręcznie (Ctrl+C)" )
@@ -85,15 +86,12 @@ df = pd.read_csv ( filename )
 # Zbuduj sygnał zespolony
 signal = df["real"].values + 1j * df["imag"].values
 
-# Oblicz współczynniki RRC
-taps = rrc_filter ( RRC_BETA , RRC_SPS , RRC_SPAN )
-
 # Filtracja za pomocą scipy.signal.lfilter
-filtered = lfilter(taps, 1.0, signal)
+filtered_signal = lfilter(rrc_taps, 1.0, signal)
 
 # Dodaj kolumny z wynikami
-df["real_filt"] = filtered.real
-df["imag_filt"] = filtered.imag
+df["real_filt"] = filtered_signal.real
+df["imag_filt"] = filtered_signal.imag
 
 # Wykres Plotly Express – wersja liniowa z filtrem
 fig = px.line(df, x="timestamp", y="real_filt", title="Sygnał BPSK po filtracji RRC – I i Q (lfilter)")
